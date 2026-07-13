@@ -378,31 +378,39 @@
     </div>
 
     <script>
-        // CONNECTING TO SUPABASE
-        const supabase = window.supabase.createClient(
-            "https://dwkwagsortdumhryaqoq.supabase.co", 
-            "sb_publishable_XMHxWK_EnLhTLuWILycphA_o3aPPebX"
-        );
-        let sessionProfile = null; 
-        let activeRideChannelId = null;
-        let activeAuthTabState = 'signin';
-        let intercomTimerInterval = null;
-        let timerSeconds = 0;
-        let localSirenAudioInterval = null;
-        let webAudioContextInstance = null;
-        let leafletMapInstance = null;
-        let currentPositionMarker = null;
-        let currentPendingApprovalId = null;
+       // CONNECTING TO SUPABASE
+const supabase = window.supabase.createClient(
+    "https://dwkwagsortdumhryaqoq.supabase.co", 
+    "sb_publishable_XMHxWK_EnLhTLuWILycphA_o3aPPebX"
+);
 
-        let hardwareMicActive = true;
-        let hardwareSpeakerActive = true;
+// INITIALIZE STORAGE IF EMPTY
+function initStorage() {
+    if (!localStorage.getItem('global_cloud_users')) localStorage.setItem('global_cloud_users', JSON.stringify({}));
+    if (!localStorage.getItem('global_cloud_rides')) localStorage.setItem('global_cloud_rides', JSON.stringify([]));
+    if (!localStorage.getItem('global_cloud_chat')) localStorage.setItem('global_cloud_chat', JSON.stringify([]));
+    if (!localStorage.getItem('global_cloud_requests')) localStorage.setItem('global_cloud_requests', JSON.stringify([]));
+}
+initStorage();
 
-        window.addEventListener('DOMContentLoaded', () => {
-            verifyDatabaseArchitectureSimulation();
-            evaluateCachedSessionToken();
-            setFormDefaultDateTime();
-        });
+let sessionProfile = null; 
+let activeRideChannelId = null;
+let activeAuthTabState = 'signin';
+let intercomTimerInterval = null;
+let timerSeconds = 0;
+let localSirenAudioInterval = null;
+let webAudioContextInstance = null;
+let leafletMapInstance = null;
+let currentPositionMarker = null;
+let currentPendingApprovalId = null;
+let hardwareMicActive = true;
+let hardwareSpeakerActive = true;
 
+window.addEventListener('DOMContentLoaded', () => {
+    initStorage();
+    evaluateCachedSessionToken();
+    setFormDefaultDateTime();
+});
         function setFormDefaultDateTime() {
             const today = new Date();
             document.getElementById('form-date').value = today.toISOString().split('T')[0];
