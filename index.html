@@ -3,16 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>RiderX - Safety SOS, Crew Hub & Cloud Intercom</title>
+    <title>RiderX - Safety SOS & Cloud Intercom</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- FIREBASE CLOUD SDKS (v8 Compat for simple HTML integration) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
-        body, html {
-            margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; background-color: #020617;
-        }
+        body, html { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; background-color: #020617; }
         .app-window { height: 100dvh; width: 100vw; display: flex; flex-direction: column; overflow: hidden; }
         .rigid-layout { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
         .scrollable-feed { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
@@ -30,10 +32,9 @@
 <body class="text-white antialiased font-sans">
 
     <div class="app-window bg-slate-950">
-        
-        <!-- TOP NAVIGATION BAR (CLEAN LAYOUT) -->
+        <!-- TOP NAVIGATION BAR -->
         <div class="px-6 py-3 flex justify-between items-center text-xs text-gray-500 bg-slate-950 border-b border-slate-900 select-none">
-            <span class="font-bold tracking-wider text-amber-500 mx-auto">RIDERX // GLOBAL INTERCOM MESH</span>
+            <span class="font-bold tracking-wider text-amber-500 mx-auto">RIDERX // FIREBASE MESH</span>
         </div>
 
         <div class="flex-1 relative overflow-hidden bg-slate-950">
@@ -45,7 +46,7 @@
                         <div class="inline-flex p-4 bg-amber-500/10 text-amber-500 rounded-3xl text-4xl mb-3">
                             <i class="fas fa-motorcycle"></i>
                         </div>
-                        <h1 id="auth-title" class="text-2xl font-black tracking-tight">RiderX Telemetry</h1>
+                        <h1 class="text-2xl font-black tracking-tight">RiderX Telemetry</h1>
                         <p class="text-gray-400 text-xs mt-1">Cross-device global communication network node</p>
                     </div>
 
@@ -83,23 +84,19 @@
                                     <input id="inp-username" type="text" placeholder="e.g. Mr Jobayer" class="w-full bg-slate-900 border border-slate-800 rounded-xl pl-9 pr-4 py-3 text-white placeholder-gray-600 text-sm focus:outline-none focus:border-amber-500">
                                 </div>
                             </div>
-
                             <!-- BUTTON SELECTION FOR GENDER -->
                             <div>
                                 <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Select Gender Profile</label>
                                 <div class="grid grid-cols-2 gap-3">
                                     <button type="button" onclick="selectGenderRegistration('Boy')" id="btn-reg-gender-boy" class="bg-slate-900 border-2 border-blue-500 text-blue-400 p-3 rounded-xl font-bold text-xs flex flex-col items-center justify-center gap-1.5 transition">
-                                        <i class="fas fa-user-tie text-lg"></i>
-                                        <span>Boy</span>
+                                        <i class="fas fa-user-tie text-lg"></i><span>Boy</span>
                                     </button>
                                     <button type="button" onclick="selectGenderRegistration('Girl')" id="btn-reg-gender-girl" class="bg-slate-900 border-2 border-slate-800 text-gray-500 p-3 rounded-xl font-bold text-xs flex flex-col items-center justify-center gap-1.5 transition">
-                                        <i class="fas fa-user-dress text-lg"></i>
-                                        <span>Girl</span>
+                                        <i class="fas fa-user-dress text-lg"></i><span>Girl</span>
                                     </button>
                                 </div>
                                 <input type="hidden" id="inp-gender" value="Boy">
                             </div>
-
                             <!-- BUTTON SELECTION FOR TRANSPORT TYPE -->
                             <div>
                                 <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Select Transport Vehicle Matrix</label>
@@ -156,7 +153,6 @@
                             </div>
                             <h2 id="dash-lbl-name" class="text-lg font-black text-white">---</h2>
                             <div class="text-[11px] text-gray-400 space-y-1.5 pt-1">
-                                <!-- RED BOX BLOOD DESIGN -->
                                 <div class="flex items-center">
                                     <span class="text-gray-400 mr-1.5">Blood Type Match:</span>
                                     <span id="dash-box-blood" class="bg-red-600 text-white font-black px-2 py-0.5 rounded text-xs flex items-center gap-1 shadow-md shadow-red-900/30">
@@ -167,9 +163,6 @@
                             </div>
                         </div>
                         <div class="flex flex-col gap-2">
-                            <button onclick="revealProfileEditor(true)" class="text-[10px] bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-xl text-gray-300 font-bold transition flex items-center gap-1">
-                                <i class="fas fa-user-edit"></i> Edit
-                            </button>
                             <button onclick="terminateSessionToken()" class="text-[10px] bg-red-500/10 border border-red-500/20 px-3 py-1.5 rounded-xl text-red-400 font-bold transition flex items-center gap-1">
                                 <i class="fas fa-power-off"></i> Exit
                             </button>
@@ -189,32 +182,11 @@
 
                     <div class="space-y-3">
                         <div class="flex justify-between items-center">
-                            <h3 class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Universal Network Active Channels (Global Sync)</h3>
+                            <h3 class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Universal Network Active Channels (Live via Firebase)</h3>
                             <span class="flex h-2 w-2 relative"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span></span>
                         </div>
                         <div id="live-channel-feed" class="space-y-3"></div>
                     </div>
-                </div>
-            </div>
-
-            <!-- PROFILE EDITOR DRAWER INTERFACE -->
-            <div id="modal-profile-edit" class="hidden absolute inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-                <div class="w-full max-w-md bg-slate-900 rounded-3xl border border-slate-800 p-6 space-y-4 shadow-2xl">
-                    <div class="flex justify-between items-center border-b border-slate-800 pb-2">
-                        <h3 class="text-sm font-bold text-white"><i class="fas fa-user-gear text-amber-500 mr-2"></i> Update Profile</h3>
-                        <i onclick="revealProfileEditor(false)" class="fas fa-times text-gray-500 hover:text-white cursor-pointer"></i>
-                    </div>
-                    <div class="space-y-3 text-xs">
-                        <div>
-                            <label class="block text-[9px] font-bold text-gray-400 uppercase mb-1">Display Call Sign Name</label>
-                            <input id="edit-inp-username" type="text" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-white focus:outline-none">
-                        </div>
-                        <div>
-                            <label class="block text-[9px] font-bold text-gray-400 uppercase mb-1">Secondary Backup SOS Contact</label>
-                            <input id="edit-inp-sos" type="tel" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-white focus:outline-none">
-                        </div>
-                    </div>
-                    <button onclick="commitProfileUpdates()" class="w-full bg-amber-500 text-slate-950 font-black py-3 rounded-xl text-xs transition">SAVE DISPATCH CONFIGURATION</button>
                 </div>
             </div>
 
@@ -267,62 +239,31 @@
 
                     <div id="live-telemetry-map" class="rounded-xl border border-slate-800 overflow-hidden bg-slate-950"></div>
 
-                    <!-- LIVE INCOMING APPROVAL REQUEST NOTIFICATION BOX -->
-                    <div id="approval-request-box" class="hidden bg-gradient-to-r from-amber-600 to-orange-600 p-3 rounded-xl shadow-lg border border-amber-400/20">
-                        <div class="flex justify-between items-center">
-                            <div class="flex items-center space-x-2">
-                                <span id="approval-icon-node" class="text-slate-950 bg-white/80 w-6 h-6 rounded-full flex items-center justify-center text-xs"><i class="fas fa-gas-pump"></i></span>
-                                <div>
-                                    <span id="approval-text-user" class="text-[11px] font-black block text-slate-950">User Requesting</span>
-                                    <p id="approval-text-desc" class="text-[10px] text-slate-900 font-medium">Needs Fuel Pitstop</p>
-                                </div>
-                            </div>
-                            <div class="flex space-x-1.5 shrink-0">
-                                <button onclick="handleRequestApprovalDecision(true)" class="bg-slate-950 text-emerald-400 px-2.5 py-1 text-[10px] font-black rounded-lg uppercase">Approve</button>
-                                <button onclick="handleRequestApprovalDecision(false)" class="bg-slate-950/20 text-slate-950 px-2 py-1 text-[10px] font-black rounded-lg uppercase">Dismiss</button>
-                            </div>
-                        </div>
-                    </div>
-
                     <!-- AUDIO MATRIX CONTROLS & CHANNELS MEMBERS GRID -->
                     <div class="bg-slate-950 border border-slate-850 p-2.5 rounded-xl space-y-2">
                         <div class="flex justify-between items-center text-[10px] text-gray-500 font-bold">
                             <span class="text-sky-400 flex items-center gap-1"><i class="fas fa-headset animate-pulse"></i> LIVE COMS FEED</span>
-                            
                             <div class="flex items-center space-x-2 text-xs">
                                 <button onclick="toggleAudioHardwareState('mic')" id="btn-audio-mic" class="px-2 py-1 rounded bg-slate-900 border border-slate-800 text-emerald-400 transition"><i class="fas fa-microphone"></i></button>
                                 <button onclick="toggleAudioHardwareState('speaker')" id="btn-audio-speaker" class="px-2 py-1 rounded bg-slate-900 border border-slate-800 text-emerald-400 transition"><i class="fas fa-volume-up"></i></button>
                                 <span id="comms-timer-lbl" class="font-mono text-[10px] text-gray-400">00:00</span>
                             </div>
                         </div>
-                        <div class="grid grid-cols-3 gap-2 text-center text-[10px] font-bold">
-                            <div id="avatar-container-self" class="p-2 rounded-lg relative border bg-slate-900/60 text-white border-slate-800">
-                                <span id="lbl-avatar-self" class="block truncate">You</span>
-                                <div id="wave-indicator-self" class="box-wave flex justify-center items-end space-x-0.5 h-1.5 absolute bottom-1 right-1.5">
-                                    <div class="w-[1.5px] h-1 bg-sky-400 wave-1"></div>
-                                    <div class="w-[1.5px] h-2 bg-sky-400 wave-2"></div>
-                                </div>
-                            </div>
-                            <div class="bg-slate-900/30 p-2 rounded-lg border border-slate-850 text-gray-500"><span class="block truncate">Dani (Lead)</span></div>
-                            <div class="bg-slate-900/30 p-2 rounded-lg border border-slate-850 text-gray-500"><span class="block truncate">Asif (B+)</span></div>
-                        </div>
                     </div>
                 </div>
 
                 <!-- UTILITY CONTROL SYSTEM WITH COMPACT SOS BUTTON -->
                 <div class="bg-slate-950 p-3 border-b border-slate-900 shrink-0">
-                    <div class="grid grid-cols-3 gap-2">
+                    <div class="grid grid-cols-1 gap-2">
                         <button onclick="armGlobalEmergencyPanicSignal()" class="bg-red-600 hover:bg-red-700 text-white font-black rounded-xl flex items-center justify-center gap-1 transition active:scale-95 shadow-md shadow-red-600/20 text-xs uppercase tracking-wider py-2.5">
-                            <i class="fas fa-bolt animate-pulse"></i> SOS
+                            <i class="fas fa-bolt animate-pulse"></i> BROADCAST EMERGENCY SOS
                         </button>
-                        <button onclick="broadcastUtilityPitstopRequest('fuel')" class="bg-slate-900 border border-slate-800 text-amber-500 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5"><i class="fas fa-gas-pump text-[10px]"></i> Fuel</button>
-                        <button onclick="broadcastUtilityPitstopRequest('food')" class="bg-slate-900 border border-slate-800 text-amber-500 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5"><i class="fas fa-utensils text-[10px]"></i> Food</button>
                     </div>
                 </div>
 
-                <div id="chat-stream-node" class="scrollable-feed p-4 space-y-3 bg-slate-950 flex flex-col justify-end"></div>
+                <div id="chat-stream-node" class="scrollable-feed p-4 space-y-3 bg-slate-950 flex flex-col"></div>
                 <div class="p-3 bg-slate-900 border-t border-slate-800 shrink-0 flex items-center space-x-2 pb-5">
-                    <input id="inp-chat-msg" type="text" placeholder="Transmit voice text message to mesh..." class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-3 text-xs text-white placeholder-gray-600 focus:outline-none">
+                    <input id="inp-chat-msg" type="text" placeholder="Transmit text message to mesh..." class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-3 text-xs text-white placeholder-gray-600 focus:outline-none">
                     <button onclick="commitChatMessageNode()" class="bg-amber-500 text-slate-950 px-4 py-3 rounded-xl transition font-black text-xs shrink-0">SEND</button>
                 </div>
             </div>
@@ -378,55 +319,54 @@
     </div>
 
     <script>
-       // CONNECTING TO SUPABASE
-const supabase = window.supabase.createClient(
-    "https://dwkwagsortdumhryaqoq.supabase.co", 
-    "sb_publishable_XMHxWK_EnLhTLuWILycphA_o3aPPebX"
-);
+        // ==========================================
+        // FIREBASE INITIALIZATION 
+        // ==========================================
+        const firebaseConfig = {
+            // REPLACE EVERYTHING INSIDE THIS BRACKET WITH YOUR FIREBASE CONFIG CODE FROM STEP 1
+            apiKey: "REPLACE_WITH_YOURS",
+            authDomain: "REPLACE_WITH_YOURS",
+            projectId: "REPLACE_WITH_YOURS",
+            storageBucket: "REPLACE_WITH_YOURS",
+            messagingSenderId: "REPLACE_WITH_YOURS",
+            appId: "REPLACE_WITH_YOURS"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
 
-// INITIALIZE STORAGE IF EMPTY
-function initStorage() {
-    if (!localStorage.getItem('global_cloud_users')) localStorage.setItem('global_cloud_users', JSON.stringify({}));
-    if (!localStorage.getItem('global_cloud_rides')) localStorage.setItem('global_cloud_rides', JSON.stringify([]));
-    if (!localStorage.getItem('global_cloud_chat')) localStorage.setItem('global_cloud_chat', JSON.stringify([]));
-    if (!localStorage.getItem('global_cloud_requests')) localStorage.setItem('global_cloud_requests', JSON.stringify([]));
-}
-initStorage();
+        // Global Variables
+        let sessionProfile = null; 
+        let activeRideChannelId = null;
+        let activeAuthTabState = 'signin';
+        let intercomTimerInterval = null;
+        let timerSeconds = 0;
+        let localSirenAudioInterval = null;
+        let webAudioContextInstance = null;
+        let leafletMapInstance = null;
+        let currentPositionMarker = null;
 
-let sessionProfile = null; 
-let activeRideChannelId = null;
-let activeAuthTabState = 'signin';
-let intercomTimerInterval = null;
-let timerSeconds = 0;
-let localSirenAudioInterval = null;
-let webAudioContextInstance = null;
-let leafletMapInstance = null;
-let currentPositionMarker = null;
-let currentPendingApprovalId = null;
-let hardwareMicActive = true;
-let hardwareSpeakerActive = true;
+        let hardwareMicActive = true;
+        let hardwareSpeakerActive = true;
+        
+        let ridesUnsubscribe = null;
+        let chatUnsubscribe = null;
 
-window.addEventListener('DOMContentLoaded', () => {
-    initStorage();
-    evaluateCachedSessionToken();
-    setFormDefaultDateTime();
-});
+        window.addEventListener('DOMContentLoaded', () => {
+            evaluateCachedSessionToken();
+            setFormDefaultDateTime();
+        });
+
         function setFormDefaultDateTime() {
             const today = new Date();
             document.getElementById('form-date').value = today.toISOString().split('T')[0];
             document.getElementById('form-time').value = "06:00";
         }
 
-       function verifyDatabaseArchitectureSimulation() {
-            console.log("Cloud Database Active.");
-        }
-
-        // REGISTRATION INTERACTIVE GENDER SELECTION TOGGLES
+        // GUI Toggles
         function selectGenderRegistration(gender) {
             document.getElementById('inp-gender').value = gender;
             const boyBtn = document.getElementById('btn-reg-gender-boy');
             const girlBtn = document.getElementById('btn-reg-gender-girl');
-            
             if(gender === 'Boy') {
                 boyBtn.className = "bg-slate-900 border-2 border-blue-500 text-blue-400 p-3 rounded-xl font-bold text-xs flex flex-col items-center justify-center gap-1.5 transition";
                 girlBtn.className = "bg-slate-900 border-2 border-slate-800 text-gray-500 p-3 rounded-xl font-bold text-xs flex flex-col items-center justify-center gap-1.5 transition";
@@ -436,34 +376,22 @@ window.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // REGISTRATION INTERACTIVE TRANSPORT SELECTION TOGGLES
         function selectTransportRegistration(type) {
             document.getElementById('inp-transport').value = type;
             const motorBtn = document.getElementById('btn-reg-trans-motor');
             const bikeBtn = document.getElementById('btn-reg-trans-bike');
             const scootBtn = document.getElementById('btn-reg-trans-scoot');
-
             [motorBtn, bikeBtn, scootBtn].forEach(b => b.className = "bg-slate-900 border-2 border-slate-800 text-gray-500 p-2.5 rounded-xl font-bold text-[10px] flex flex-col items-center justify-center gap-1 transition");
-
-            if(type === 'Motorcycle') {
-                motorBtn.className = "bg-slate-900 border-2 border-amber-500 text-amber-500 p-2.5 rounded-xl font-bold text-[10px] flex flex-col items-center justify-center gap-1 transition";
-            } else if(type === 'Bicycle') {
-                bikeBtn.className = "bg-slate-900 border-2 border-amber-500 text-amber-500 p-2.5 rounded-xl font-bold text-[10px] flex flex-col items-center justify-center gap-1 transition";
-            } else if(type === 'Scooter') {
-                scootBtn.className = "bg-slate-900 border-2 border-amber-500 text-amber-500 p-2.5 rounded-xl font-bold text-[10px] flex flex-col items-center justify-center gap-1 transition";
-            }
+            if(type === 'Motorcycle') motorBtn.className = "bg-slate-900 border-2 border-amber-500 text-amber-500 p-2.5 rounded-xl font-bold text-[10px] flex flex-col items-center justify-center gap-1 transition";
+            else if(type === 'Bicycle') bikeBtn.className = "bg-slate-900 border-2 border-amber-500 text-amber-500 p-2.5 rounded-xl font-bold text-[10px] flex flex-col items-center justify-center gap-1 transition";
+            else if(type === 'Scooter') scootBtn.className = "bg-slate-900 border-2 border-amber-500 text-amber-500 p-2.5 rounded-xl font-bold text-[10px] flex flex-col items-center justify-center gap-1 transition";
         }
 
         function togglePasswordVisibility(targetId) {
             const field = document.getElementById(targetId);
             const eye = document.getElementById(targetId + '-eye');
-            if(field.type === 'password') {
-                field.type = 'text';
-                eye.className = "fas fa-eye-slash";
-            } else {
-                field.type = 'password';
-                eye.className = "fas fa-eye";
-            }
+            if(field.type === 'password') { field.type = 'text'; eye.className = "fas fa-eye-slash"; } 
+            else { field.type = 'password'; eye.className = "fas fa-eye"; }
         }
 
         function toggleAudioHardwareState(device) {
@@ -472,7 +400,6 @@ window.addEventListener('DOMContentLoaded', () => {
                 const btn = document.getElementById('btn-audio-mic');
                 btn.className = hardwareMicActive ? "px-2 py-1 rounded bg-slate-900 border border-slate-800 text-emerald-400 transition" : "px-2 py-1 rounded bg-slate-900 border border-slate-800 text-red-500 transition";
                 btn.innerHTML = hardwareMicActive ? '<i class="fas fa-microphone"></i>' : '<i class="fas fa-microphone-slash"></i>';
-                document.getElementById('wave-indicator-self').style.display = hardwareMicActive ? 'flex' : 'none';
             } else if(device === 'speaker') {
                 hardwareSpeakerActive = !hardwareSpeakerActive;
                 const btn = document.getElementById('btn-audio-speaker');
@@ -481,65 +408,50 @@ window.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-       async function evaluateCachedSessionToken() {
+        function toggleAuthTab(tabName) {
+            activeAuthTabState = tabName;
+            document.getElementById('auth-feedback').classList.add('hidden');
+            const tsni = document.getElementById('tab-signin');
+            const tsnu = document.getElementById('tab-signup');
+            const extra = document.getElementById('signup-extra-fields');
+            const btn = document.getElementById('btn-auth-text');
+
+            if(tabName === 'signin') {
+                tsni.className = "flex-1 py-2.5 text-xs font-black rounded-xl bg-amber-500 text-slate-950 transition-all duration-200";
+                tsnu.className = "flex-1 py-2.5 text-xs font-black rounded-xl text-gray-400 transition-all duration-200";
+                extra.classList.add('hidden');
+                btn.innerText = "Sign In Securely";
+            } else {
+                tsnu.className = "flex-1 py-2.5 text-xs font-black rounded-xl bg-amber-500 text-slate-950 transition-all duration-200";
+                tsni.className = "flex-1 py-2.5 text-xs font-black rounded-xl text-gray-400 transition-all duration-200";
+                extra.classList.remove('hidden');
+                btn.innerText = "Create Permanent Cloud Profile";
+            }
+        }
+
+        // ==========================================
+        // FIREBASE DATABASE LOGIC
+        // ==========================================
+
+        async function evaluateCachedSessionToken() {
             const stored = localStorage.getItem('riderx_active_session_phone');
             if(stored) {
-                // Look up the user in the Cloud instead of the phone's memory
-                const { data: user, error } = await supabase.from('users').select('*').eq('phone', stored).single();
-                if(user) {
-                    sessionProfile = user;
-                    bootDashboardViewport();
-                    return;
-                }
+                try {
+                    const doc = await db.collection('users').doc(stored).get();
+                    if(doc.exists) {
+                        sessionProfile = doc.data();
+                        bootDashboardViewport();
+                        return;
+                    }
+                } catch(e) { console.error("Firebase Error:", e); }
             }
             transitionViewportContext('auth');
-        }
-        function toggleAuthTab(tabName) {
-            activeAuthTabState = tabName;
-            document.getElementById('auth-feedback').classList.add('hidden');
-            const tsni = document.getElementById('tab-signin');
-            const tsnu = document.getElementById('tab-signup');
-            const extra = document.getElementById('signup-extra-fields');
-            const btn = document.getElementById('btn-auth-text');
-
-            if(tabName === 'signin') {
-                tsni.className = "flex-1 py-2.5 text-xs font-black rounded-xl bg-amber-500 text-slate-950 transition-all duration-200";
-                tsnu.className = "flex-1 py-2.5 text-xs font-black rounded-xl text-gray-400 transition-all duration-200";
-                extra.classList.add('hidden');
-                btn.innerText = "Sign In Securely";
-            } else {
-                tsnu.className = "flex-1 py-2.5 text-xs font-black rounded-xl bg-amber-500 text-slate-950 transition-all duration-200";
-                tsni.className = "flex-1 py-2.5 text-xs font-black rounded-xl text-gray-400 transition-all duration-200";
-                extra.classList.remove('hidden');
-                btn.innerText = "Create Permanent Cloud Profile";
-            }
-        }
-        function toggleAuthTab(tabName) {
-            activeAuthTabState = tabName;
-            document.getElementById('auth-feedback').classList.add('hidden');
-            const tsni = document.getElementById('tab-signin');
-            const tsnu = document.getElementById('tab-signup');
-            const extra = document.getElementById('signup-extra-fields');
-            const btn = document.getElementById('btn-auth-text');
-
-            if(tabName === 'signin') {
-                tsni.className = "flex-1 py-2.5 text-xs font-black rounded-xl bg-amber-500 text-slate-950 transition-all duration-200";
-                tsnu.className = "flex-1 py-2.5 text-xs font-black rounded-xl text-gray-400 transition-all duration-200";
-                extra.classList.add('hidden');
-                btn.innerText = "Sign In Securely";
-            } else {
-                tsnu.className = "flex-1 py-2.5 text-xs font-black rounded-xl bg-amber-500 text-slate-950 transition-all duration-200";
-                tsni.className = "flex-1 py-2.5 text-xs font-black rounded-xl text-gray-400 transition-all duration-200";
-                extra.classList.remove('hidden');
-                btn.innerText = "Create Permanent Cloud Profile";
-            }
         }
 
         async function processAuthSubmission() {
             const phone = document.getElementById('inp-phone').value.trim();
             const pass = document.getElementById('inp-password').value;
             const feedback = document.getElementById('auth-feedback');
-            const btn = document.getElementById('btn-auth-text');
 
             if(!phone || !pass) {
                 feedback.innerText = "Phone token and security password parameters required.";
@@ -547,130 +459,203 @@ window.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            btn.innerText = "Connecting to Cloud..."; 
+            try {
+                if(activeAuthTabState === 'signup') {
+                    const name = document.getElementById('inp-username').value.trim();
+                    const sos = document.getElementById('inp-sos').value.trim();
+                    const blood = document.getElementById('inp-blood').value;
+                    const gender = document.getElementById('inp-gender').value;
+                    const transport = document.getElementById('inp-transport').value;
 
-            if(activeAuthTabState === 'signup') {
-                const name = document.getElementById('inp-username').value.trim();
-                const sos = document.getElementById('inp-sos').value.trim();
-                const blood = document.getElementById('inp-blood').value;
-                const gender = document.getElementById('inp-gender').value;
-                const transport = document.getElementById('inp-transport').value;
+                    if(!name || !sos) {
+                        feedback.innerText = "All deployment registration metrics are mandatory.";
+                        feedback.classList.remove('hidden');
+                        return;
+                    }
 
-                if(!name || !sos) {
-                    feedback.innerText = "All deployment registration metrics are mandatory.";
-                    feedback.classList.remove('hidden');
-                    btn.innerText = "Create Permanent Cloud Profile";
-                    return;
+                    const docCheck = await db.collection('users').doc(phone).get();
+                    if(docCheck.exists) {
+                        feedback.innerText = "Token key identity already online.";
+                        feedback.classList.remove('hidden');
+                        return;
+                    }
+
+                    const newUser = { phone, pass, username: name, sosPhone: sos, blood, gender, transport };
+                    await db.collection('users').doc(phone).set(newUser);
+                    sessionProfile = newUser;
+
+                } else {
+                    const doc = await db.collection('users').doc(phone).get();
+                    if(!doc.exists || doc.data().pass !== pass) {
+                        feedback.innerText = "Invalid credentials.";
+                        feedback.classList.remove('hidden');
+                        return;
+                    }
+                    sessionProfile = doc.data();
                 }
 
-                const { data: existingUser } = await supabase.from('users').select('*').eq('phone', phone).single();
-
-                if(existingUser) {
-                    feedback.innerText = "Token key identity already online. Please Sign In.";
-                    feedback.classList.remove('hidden');
-                    btn.innerText = "Create Permanent Cloud Profile";
-                    return;
-                }
-
-                const newUser = { phone, pass, username: name, sosPhone: sos, blood, gender, transport };
-                const { error } = await supabase.from('users').insert([newUser]);
-
-                if(error) {
-                    feedback.innerText = "Cloud Error: " + error.message;
-                    feedback.classList.remove('hidden');
-                    btn.innerText = "Create Permanent Cloud Profile";
-                    return;
-                }
-                
-                sessionProfile = newUser;
-
-            } else {
-                const { data: user, error } = await supabase.from('users').select('*').eq('phone', phone).single();
-
-                if(!user || user.pass !== pass) {
-                    feedback.innerText = "Invalid credentials. User not found in Cloud.";
-                    feedback.classList.remove('hidden');
-                    btn.innerText = "Sign In Securely";
-                    return;
-                }
-                sessionProfile = user;
+                localStorage.setItem('riderx_active_session_phone', phone);
+                feedback.classList.add('hidden');
+                bootDashboardViewport();
+            } catch (error) {
+                feedback.innerText = "Connection to Firebase failed. Check console.";
+                feedback.classList.remove('hidden');
+                console.error(error);
             }
-
-            localStorage.setItem('riderx_active_session_phone', phone);
-            feedback.classList.add('hidden');
-            if(activeAuthTabState === 'signup') btn.innerText = "Create Permanent Cloud Profile";
-            else btn.innerText = "Sign In Securely";
-            
-            bootDashboardViewport();
         }
+
         function bootDashboardViewport() {
             document.getElementById('dash-lbl-name').innerText = sessionProfile.username;
             document.getElementById('dash-lbl-blood').innerText = sessionProfile.blood;
             document.getElementById('dash-lbl-sos').innerText = sessionProfile.sosPhone;
             document.getElementById('form-marshal').value = sessionProfile.username;
-            
-            // Set dynamic transport vehicle label card badge
             document.getElementById('dash-badge-transport').innerText = sessionProfile.transport || "Motorcycle";
 
             const badge = document.getElementById('dash-badge-gender');
             badge.innerText = sessionProfile.gender === 'Girl' ? 'Girl' : 'Boy';
-            if(sessionProfile.gender === 'Girl') {
-                badge.className = "text-[9px] uppercase font-bold tracking-widest px-2 py-0.5 rounded border bg-pink-500/10 text-pink-400 border-pink-500/30";
-            } else {
-                badge.className = "text-[9px] uppercase font-bold tracking-widest px-2 py-0.5 rounded border bg-blue-500/10 text-blue-400 border-blue-500/30";
-            }
-
-            const selfCard = document.getElementById('avatar-container-self');
-            if(selfCard) {
-                selfCard.className = sessionProfile.gender === 'Girl' ? "p-2 rounded-lg relative border bg-pink-950/40 text-pink-300 border-pink-500/30" : "p-2 rounded-lg relative border bg-blue-950/40 text-blue-300 border-blue-500/30";
-            }
+            if(sessionProfile.gender === 'Girl') badge.className = "text-[9px] uppercase font-bold tracking-widest px-2 py-0.5 rounded border bg-pink-500/10 text-pink-400 border-pink-500/30";
+            else badge.className = "text-[9px] uppercase font-bold tracking-widest px-2 py-0.5 rounded border bg-blue-500/10 text-blue-400 border-blue-500/30";
 
             transitionViewportContext('dashboard');
-            syncChannelsFeedView();
+            listenToLiveRides();
+        }
+
+        // FIREBASE: Realtime Rides Feed Listener
+        function listenToLiveRides() {
+            if (ridesUnsubscribe) ridesUnsubscribe();
             
-            if(!window.pollerInitialized) {
-                setInterval(syncChannelsFeedView, 3000);
-                setInterval(syncActiveChatStreamPackets, 2000);
-                setInterval(pollIncomingApprovalRequests, 2000);
-                window.pollerInitialized = true;
-            }
+            ridesUnsubscribe = db.collection('rides').orderBy('createdAt', 'desc').onSnapshot(snapshot => {
+                const container = document.getElementById('live-channel-feed');
+                container.innerHTML = "";
+                
+                if(snapshot.empty) {
+                    container.innerHTML = `<div class="bg-slate-900/40 text-center py-8 text-gray-500 text-xs">No active cross-device channel streams found.</div>`;
+                    return;
+                }
+
+                snapshot.forEach(doc => {
+                    const run = doc.data();
+                    const card = document.createElement('div');
+                    card.className = "bg-slate-900 border border-slate-800 p-4 rounded-2xl flex justify-between items-center cursor-pointer hover:border-amber-500/40 mt-3";
+                    card.onclick = () => initializeLiveIntercomCommsMesh(run);
+                    card.innerHTML = `
+                        <div class="space-y-1 truncate max-w-[70%]">
+                            <h4 class="text-xs font-black text-white truncate">${run.title.toUpperCase()}</h4>
+                            <p class="text-[10px] text-gray-400 truncate"><i class="fas fa-location-dot text-orange-500 mr-1"></i> ${run.meet} → ${run.dest}</p>
+                            <div class="text-[9px] text-amber-500 font-medium flex gap-2">
+                                <span><i class="fas fa-calendar"></i> ${run.date || ''} (${run.time || ''})</span>
+                            </div>
+                        </div>
+                        <span class="bg-slate-950 px-3 py-2 rounded-xl text-[10px] font-black text-amber-500 border border-slate-850">JOIN MESH</span>
+                    `;
+                    container.appendChild(card);
+                });
+            });
         }
 
-        function revealProfileEditor(show) {
-            const drawer = document.getElementById('modal-profile-edit');
-            if(show) {
-                document.getElementById('edit-inp-username').value = sessionProfile.username;
-                document.getElementById('edit-inp-sos').value = sessionProfile.sosPhone;
-                drawer.classList.remove('hidden');
-            } else {
-                drawer.classList.add('hidden');
-            }
+        async function executeCloudRideCreation() {
+            const title = document.getElementById('form-title').value.trim() || "Mesh Deployment Run";
+            const meet = document.getElementById('form-meet').value.trim();
+            const dest = document.getElementById('form-dest').value.trim();
+            const speed = document.getElementById('form-speed').value.trim();
+            const date = document.getElementById('form-date').value;
+            const time = document.getElementById('form-time').value;
+
+            const newChannelId = "CH-" + Date.now();
+            const record = {
+                id: newChannelId,
+                title, meet, dest, speed, date, time,
+                marshal: sessionProfile.username,
+                creatorPhone: sessionProfile.phone,
+                createdAt: Date.now()
+            };
+
+            await db.collection('rides').doc(newChannelId).set(record);
+            revealModalContainer(false);
+            initializeLiveIntercomCommsMesh(record);
         }
 
-        function commitProfileUpdates() {
-            const nextName = document.getElementById('edit-inp-username').value.trim();
-            const nextSos = document.getElementById('edit-inp-sos').value.trim();
-            if(!nextName || !nextSos) return;
-
-            let users = JSON.parse(localStorage.getItem('global_cloud_users'));
-            sessionProfile.username = nextName;
-            sessionProfile.sosPhone = nextSos;
-            users[sessionProfile.phone] = sessionProfile;
+        function initializeLiveIntercomCommsMesh(runObject) {
+            activeRideChannelId = runObject.id;
+            document.getElementById('hud-txt-title').innerText = runObject.title.toUpperCase();
+            document.getElementById('hud-txt-path').innerHTML = `<i class="fas fa-location-dot text-orange-500 mr-1"></i> ${runObject.meet} → ${runObject.dest}`;
             
-            localStorage.setItem('global_cloud_users', JSON.stringify(users));
-            revealProfileEditor(false);
-            bootDashboardViewport();
+            transitionViewportContext('intercom');
+            bootIntercomTimerMetric(true);
+            setupHardwareMapDevice();
+            
+            // Start listening to live chat for this specific room
+            listenToLiveChat(activeRideChannelId);
         }
 
-        function terminateSessionToken() {
-            suppressActiveEmergencySignal();
-            terminateIntercomChannel();
-            localStorage.removeItem('riderx_active_session_phone');
-            sessionProfile = null;
-            transitionViewportContext('auth');
-            toggleAuthTab('signin');
+        // FIREBASE: Realtime Chat & SOS Listener
+        function listenToLiveChat(channelId) {
+            if (chatUnsubscribe) chatUnsubscribe();
+            
+            chatUnsubscribe = db.collection('chat').where('channelId', '==', channelId).onSnapshot(snapshot => {
+                const container = document.getElementById('chat-stream-node');
+                container.innerHTML = "";
+                
+                // Fetch and sort data locally to avoid Firebase Index errors
+                let messages = [];
+                snapshot.forEach(doc => messages.push({ id: doc.id, ...doc.data() }));
+                messages.sort((a, b) => a.timestamp - b.timestamp);
+
+                messages.forEach(packet => {
+                    // Trigger SOS if found
+                    if(packet.isSOS) { displayGlobalSOSOverlayHUD(packet.emergencyProfile); }
+
+                    const row = document.createElement('div');
+                    row.className = "mt-3";
+                    if(packet.senderPhone === "000" || packet.isSOS) {
+                        row.className += " p-2 bg-red-950/40 border border-red-900/30 rounded-xl text-[10px] text-center text-red-400 font-bold";
+                        row.innerText = packet.message;
+                    } else if(packet.senderPhone === sessionProfile.phone) {
+                        row.className += " self-end bg-amber-500 text-slate-950 p-2.5 rounded-2xl rounded-tr-none font-semibold text-xs max-w-[80%] shrink-0 ml-auto";
+                        row.innerHTML = packet.message;
+                    } else {
+                        row.className += " self-start bg-slate-900 border border-slate-800 text-white p-2.5 rounded-2xl rounded-tl-none font-medium text-xs max-w-[80%] shrink-0 mr-auto";
+                        row.innerHTML = `<span class="block text-[8px] text-amber-500 font-bold mb-0.5">${packet.senderName}</span>${packet.message}`;
+                    }
+                    container.appendChild(row);
+                });
+                container.scrollTop = container.scrollHeight;
+            });
         }
 
+        async function commitChatMessageNode() {
+            const input = document.getElementById('inp-chat-msg');
+            const val = input.value.trim();
+            if(!val || !activeRideChannelId) return;
+
+            const packet = {
+                channelId: activeRideChannelId, 
+                senderName: sessionProfile.username, 
+                senderPhone: sessionProfile.phone, 
+                message: val, 
+                isSOS: false, 
+                timestamp: Date.now()
+            };
+            
+            await db.collection('chat').add(packet);
+            input.value = "";
+        }
+
+        async function armGlobalEmergencyPanicSignal() {
+            if(!activeRideChannelId) return;
+            const packet = {
+                channelId: activeRideChannelId, 
+                senderName: sessionProfile.username, 
+                senderPhone: sessionProfile.phone, 
+                message: "🚨 CRITICAL SOS ALERT TRIGGERED IN MESH ENVIRONMENT.", 
+                isSOS: true, 
+                emergencyProfile: sessionProfile, 
+                timestamp: Date.now()
+            };
+            await db.collection('chat').add(packet);
+        }
+
+        // View Transitions & UI Utils
         function transitionViewportContext(target) {
             document.getElementById('screen-auth').classList.add('hidden');
             document.getElementById('screen-dashboard').classList.add('hidden');
@@ -679,108 +664,57 @@ window.addEventListener('DOMContentLoaded', () => {
 
             if(target === 'auth') document.getElementById('screen-auth').classList.remove('hidden');
             if(target === 'dashboard') document.getElementById('screen-dashboard').classList.remove('hidden');
-            if(target === 'history') {
-                document.getElementById('screen-history').classList.remove('hidden');
-                renderHistoryLogTerminal();
-            }
+            if(target === 'history') { document.getElementById('screen-history').classList.remove('hidden'); fetchHistory(); }
             if(target === 'intercom') document.getElementById('screen-intercom').classList.remove('hidden');
         }
 
-        function revealModalContainer(shouldShow) {
-            const modal = document.getElementById('modal-container-create');
-            if(shouldShow) modal.classList.remove('hidden');
-            else modal.classList.add('hidden');
-        }
-
-        function executeCloudRideCreation() {
-            const title = document.getElementById('form-title').value.trim() || "Mesh Deployment Run";
-            const meet = document.getElementById('form-meet').value.trim();
-            const dest = document.getElementById('form-dest').value.trim();
-            const speed = document.getElementById('form-speed').value.trim();
-            const date = document.getElementById('form-date').value;
-            const time = document.getElementById('form-time').value;
-
-            let rides = JSON.parse(localStorage.getItem('global_cloud_rides'));
-            const newChannelId = "CH-" + Date.now();
-            
-            const record = {
-                id: newChannelId,
-                title, meet, dest, speed, date, time,
-                marshal: sessionProfile.username,
-                creatorPhone: sessionProfile.phone,
-                timestamp: new Date().toLocaleDateString()
-            };
-
-            rides.push(record);
-            localStorage.setItem('global_cloud_rides', JSON.stringify(rides));
-            
-            revealModalContainer(false);
-            initializeLiveIntercomCommsMesh(record);
-        }
-
-        function syncChannelsFeedView() {
-            if(!sessionProfile) return;
-            const container = document.getElementById('live-channel-feed');
-            const rides = JSON.parse(localStorage.getItem('global_cloud_rides'));
-            container.innerHTML = "";
-            
-            if(rides.length === 0) {
-                container.innerHTML = `<div class="bg-slate-900/40 text-center py-8 text-gray-500 text-xs">No active cross-device channel streams found.</div>`;
-                return;
-            }
-
-            rides.slice().reverse().forEach(run => {
-                const card = document.createElement('div');
-                card.className = "bg-slate-900 border border-slate-800 p-4 rounded-2xl flex justify-between items-center cursor-pointer hover:border-amber-500/40";
-                card.onclick = () => initializeLiveIntercomCommsMesh(run);
-                card.innerHTML = `
-                    <div class="space-y-1 truncate max-w-[70%]">
-                        <h4 class="text-xs font-black text-white truncate">${run.title.toUpperCase()}</h4>
-                        <p class="text-[10px] text-gray-400 truncate"><i class="fas fa-location-dot text-orange-500 mr-1"></i> ${run.meet} → ${run.dest}</p>
-                        <div class="text-[9px] text-amber-500 font-medium flex gap-2">
-                            <span><i class="fas fa-calendar"></i> ${run.date || ''} (${run.time || ''})</span>
-                            <span><i class="fas fa-gauge"></i> ${run.speed || '90km/h'}</span>
-                        </div>
-                    </div>
-                    <span class="bg-slate-950 px-3 py-2 rounded-xl text-[10px] font-black text-amber-500 border border-slate-850">JOIN MESH</span>
-                `;
-                container.appendChild(card);
-            });
-        }
-
-        function renderHistoryLogTerminal() {
+        async function fetchHistory() {
             const container = document.getElementById('history-container-node');
-            const rides = JSON.parse(localStorage.getItem('global_cloud_rides'));
+            container.innerHTML = "Loading...";
+            const snapshot = await db.collection('rides').where('creatorPhone', '==', sessionProfile.phone).get();
             container.innerHTML = "";
-            const userRuns = rides.filter(r => r.creatorPhone === sessionProfile.phone);
-            
-            if(userRuns.length === 0) {
-                container.innerHTML = `<div class="bg-slate-900/40 text-center py-10 text-gray-500 text-xs">No past deployment logs logged under this call token.</div>`;
+            if(snapshot.empty) {
+                container.innerHTML = `<div class="bg-slate-900/40 text-center py-10 text-gray-500 text-xs">No past deployment logs.</div>`;
                 return;
             }
-
-            userRuns.slice().reverse().forEach(run => {
+            snapshot.forEach(doc => {
+                const run = doc.data();
                 const node = document.createElement('div');
-                node.className = "bg-slate-900 border border-slate-850 p-4 rounded-xl space-y-1";
+                node.className = "bg-slate-900 border border-slate-850 p-4 rounded-xl space-y-1 mt-3";
                 node.innerHTML = `
                     <h4 class="text-xs font-black text-amber-500">${run.title.toUpperCase()}</h4>
                     <p class="text-[10px] text-gray-400">${run.meet} → ${run.dest}</p>
-                    <p class="text-[9px] text-gray-600">${run.date} @ ${run.time} | Limit: ${run.speed}</p>
+                    <p class="text-[9px] text-gray-600">${run.date} @ ${run.time}</p>
                 `;
                 container.appendChild(node);
             });
         }
 
-        function initializeLiveIntercomCommsMesh(runObject) {
-            activeRideChannelId = runObject.id;
-            document.getElementById('hud-txt-title').innerText = runObject.title.toUpperCase();
-            document.getElementById('hud-txt-path').innerHTML = `<i class="fas fa-location-dot text-orange-500 mr-1"></i> ${runObject.meet} → ${runObject.dest} | Speed: ${runObject.speed || '90km/h'}`;
-            
-            transitionViewportContext('intercom');
-            bootIntercomTimerMetric(true);
-            setupHardwareMapDevice();
-            syncActiveChatStreamPackets();
-            pollIncomingApprovalRequests();
+        function terminateSessionToken() {
+            suppressActiveEmergencySignal();
+            terminateIntercomChannel();
+            if(ridesUnsubscribe) ridesUnsubscribe();
+            localStorage.removeItem('riderx_active_session_phone');
+            sessionProfile = null;
+            transitionViewportContext('auth');
+            toggleAuthTab('signin');
+        }
+
+        function revealModalContainer(shouldShow) {
+            const modal = document.getElementById('modal-container-create');
+            if(shouldShow) modal.classList.remove('hidden'); else modal.classList.add('hidden');
+        }
+
+        function bootIntercomTimerMetric(isArmed) {
+            clearInterval(intercomTimerInterval);
+            if(!isArmed) { document.getElementById('comms-timer-lbl').innerText = "00:00"; return; }
+            timerSeconds = 0;
+            intercomTimerInterval = setInterval(() => {
+                timerSeconds++;
+                let m = Math.floor(timerSeconds / 60).toString().padStart(2, '0');
+                let s = (timerSeconds % 60).toString().padStart(2, '0');
+                document.getElementById('comms-timer-lbl').innerText = `${m}:${s}`;
+            }, 1000);
         }
 
         function setupHardwareMapDevice() {
@@ -805,133 +739,8 @@ window.addEventListener('DOMContentLoaded', () => {
             suppressActiveEmergencySignal();
             bootIntercomTimerMetric(false);
             activeRideChannelId = null;
-            document.getElementById('approval-request-box').classList.add('hidden');
+            if(chatUnsubscribe) chatUnsubscribe();
             transitionViewportContext('dashboard');
-        }
-
-        function bootIntercomTimerMetric(isArmed) {
-            clearInterval(intercomTimerInterval);
-            if(!isArmed) { document.getElementById('comms-timer-lbl').innerText = "00:00"; return; }
-            timerSeconds = 0;
-            intercomTimerInterval = setInterval(() => {
-                timerSeconds++;
-                let m = Math.floor(timerSeconds / 60).toString().padStart(2, '0');
-                let s = (timerSeconds % 60).toString().padStart(2, '0');
-                document.getElementById('comms-timer-lbl').innerText = `${m}:${s}`;
-            }, 1000);
-        }
-
-        function broadcastUtilityPitstopRequest(type) {
-            if(!activeRideChannelId) return;
-            let requestsDb = JSON.parse(localStorage.getItem('global_cloud_requests')) || [];
-            
-            const reqId = "REQ-" + Date.now();
-            requestsDb.push({
-                id: reqId, channelId: activeRideChannelId, senderName: sessionProfile.username, senderPhone: sessionProfile.phone, type: type, status: 'pending'
-            });
-            localStorage.setItem('global_cloud_requests', JSON.stringify(requestsDb));
-            
-            let chatDb = JSON.parse(localStorage.getItem('global_cloud_chat'));
-            chatDb.push({
-                channelId: activeRideChannelId, senderName: "SYSTEM NODE", senderPhone: "000", message: `⚠️ REQUEST NOTICE: ${sessionProfile.username.toUpperCase()} requires an urgent ${type.toUpperCase()} pitstop.`, isSOS: false, timestamp: Date.now()
-            });
-            localStorage.setItem('global_cloud_chat', JSON.stringify(chatDb));
-            syncActiveChatStreamPackets();
-        }
-
-        function pollIncomingApprovalRequests() {
-            if(!activeRideChannelId) return;
-            const requestsDb = JSON.parse(localStorage.getItem('global_cloud_requests')) || [];
-            const box = document.getElementById('approval-request-box');
-            
-            const liveRequest = requestsDb.find(r => r.channelId === activeRideChannelId && r.status === 'pending');
-            if(!liveRequest) { box.classList.add('hidden'); currentPendingApprovalId = null; return; }
-
-            if(currentPendingApprovalId !== liveRequest.id) {
-                currentPendingApprovalId = liveRequest.id;
-                if(hardwareSpeakerActive) executeHardwareFrequencyChirp(580, 0.2);
-            }
-
-            document.getElementById('approval-text-user').innerText = liveRequest.senderName;
-            document.getElementById('approval-text-desc').innerText = liveRequest.type === 'fuel' ? 'Needs Fuel Pitstop' : 'Needs Food / Rest Stop';
-            document.getElementById('approval-icon-node').innerHTML = liveRequest.type === 'fuel' ? '<i class="fas fa-gas-pump"></i>' : '<i class="fas fa-utensils"></i>';
-            box.classList.remove('hidden');
-        }
-
-        function handleRequestApprovalDecision(approved) {
-            if(!currentPendingApprovalId) return;
-            let requestsDb = JSON.parse(localStorage.getItem('global_cloud_requests')) || [];
-            
-            requestsDb = requestsDb.map(r => {
-                if(r.id === currentPendingApprovalId) r.status = approved ? 'approved' : 'declined';
-                return r;
-            });
-            localStorage.setItem('global_cloud_requests', JSON.stringify(requestsDb));
-
-            let chatDb = JSON.parse(localStorage.getItem('global_cloud_chat'));
-            chatDb.push({
-                channelId: activeRideChannelId, senderName: "SYSTEM NODE", senderPhone: "000", message: approved ? `✅ REQUEST COMS APPROVED: Destination pitstop verified.` : `❌ REQUEST DISMISSED: Request archived by marshal.`, isSOS: false, timestamp: Date.now()
-            });
-            localStorage.setItem('global_cloud_chat', JSON.stringify(chatDb));
-            
-            if(hardwareSpeakerActive) executeHardwareFrequencyChirp(approved ? 880 : 350, 0.15);
-
-            currentPendingApprovalId = null;
-            box.classList.add('hidden');
-            syncActiveChatStreamPackets();
-        }
-
-        function commitChatMessageNode() {
-            const input = document.getElementById('inp-chat-msg');
-            const val = input.value.trim();
-            if(!val || !activeRideChannelId) return;
-
-            let chatDb = JSON.parse(localStorage.getItem('global_cloud_chat'));
-            chatDb.push({
-                channelId: activeRideChannelId, senderName: sessionProfile.username, senderPhone: sessionProfile.phone, message: val, isSOS: false, timestamp: Date.now()
-            });
-            localStorage.setItem('global_cloud_chat', JSON.stringify(chatDb));
-            input.value = "";
-            syncActiveChatStreamPackets();
-        }
-
-        function armGlobalEmergencyPanicSignal() {
-            if(!activeRideChannelId) return;
-            let chatDb = JSON.parse(localStorage.getItem('global_cloud_chat'));
-            
-            chatDb.push({
-                channelId: activeRideChannelId, senderName: sessionProfile.username, senderPhone: sessionProfile.phone, message: "🚨 CRITICAL SOS ALERT TRIGGERED IN MESH ENVIRONMENT.", isSOS: true, emergencyProfile: sessionProfile, timestamp: Date.now()
-            });
-            localStorage.setItem('global_cloud_chat', JSON.stringify(chatDb));
-            syncActiveChatStreamPackets();
-        }
-
-        function syncActiveChatStreamPackets() {
-            if(!activeRideChannelId) return;
-            const container = document.getElementById('chat-stream-node');
-            const chatDb = JSON.parse(localStorage.getItem('global_cloud_chat'));
-            
-            const activePanicPacket = chatDb.find(msg => msg.channelId === activeRideChannelId && msg.isSOS === true);
-            if(activePanicPacket) displayGlobalSOSOverlayHUD(activePanicPacket.emergencyProfile);
-
-            const filtered = chatDb.filter(m => m.channelId === activeRideChannelId);
-            container.innerHTML = "";
-
-            filtered.forEach(packet => {
-                const row = document.createElement('div');
-                if(packet.senderPhone === "000" || packet.isSOS) {
-                    row.className = "p-2 bg-red-950/40 border border-red-900/30 rounded-xl text-[10px] text-center text-red-400 font-bold";
-                    row.innerText = packet.message;
-                } else if(packet.senderPhone === sessionProfile.phone) {
-                    row.className = "self-end bg-amber-500 text-slate-950 p-2.5 rounded-2xl rounded-tr-none font-semibold text-xs max-w-[80%] shrink-0";
-                    row.innerHTML = packet.message;
-                } else {
-                    row.className = "self-start bg-slate-900 border border-slate-800 text-white p-2.5 rounded-2xl rounded-tl-none font-medium text-xs max-w-[80%] shrink-0";
-                    row.innerHTML = `<span class="block text-[8px] text-amber-500 font-bold mb-0.5">${packet.senderName}</span>${packet.message}`;
-                }
-                container.appendChild(row);
-            });
-            container.scrollTop = container.scrollHeight;
         }
 
         function displayGlobalSOSOverlayHUD(profile) {
@@ -974,12 +783,6 @@ window.addEventListener('DOMContentLoaded', () => {
             if (localSirenAudioInterval) {
                 clearInterval(localSirenAudioInterval);
                 localSirenAudioInterval = null;
-            }
-            if(activeRideChannelId) {
-                let chatDb = JSON.parse(localStorage.getItem('global_cloud_chat'));
-                const cleared = chatDb.filter(m => !(m.channelId === activeRideChannelId && m.isSOS === true));
-                localStorage.setItem('global_cloud_chat', JSON.stringify(cleared));
-                syncActiveChatStreamPackets();
             }
         }
     </script>
