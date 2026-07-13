@@ -404,12 +404,15 @@
             document.getElementById('form-time').value = "06:00";
         }
 
-        function verifyDatabaseArchitectureSimulation() {
-            if(!localStorage.getItem('global_cloud_users')) localStorage.setItem('global_cloud_users', JSON.stringify({}));
-            if(!localStorage.getItem('global_cloud_rides')) localStorage.setItem('global_cloud_rides', JSON.stringify([]));
-            if(!localStorage.getItem('global_cloud_chat')) localStorage.setItem('global_cloud_chat', JSON.stringify([]));
-            if(!localStorage.getItem('global_cloud_requests')) localStorage.setItem('global_cloud_requests', JSON.stringify([]));
-        }
+        // Initialize Supabase Bridge
+    const supabase = supabase.createClient(
+        "https://dwkwagsortdumhryaqoq.supabase.co", 
+        "sb_publishable_XMHxWK_EnLhTLuWILycphA_o3aPPebX"
+    );
+
+    function verifyDatabaseArchitectureSimulation() {
+        console.log("RiderX Cloud Mesh Initialized via Supabase");
+    }
 
         // REGISTRATION INTERACTIVE GENDER SELECTION TOGGLES
         function selectGenderRegistration(gender) {
