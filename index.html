@@ -159,7 +159,7 @@
         <!-- Telemetry Map -->
         <div id="live-telemetry-map" class="h-44 w-full shrink-0 z-0 bg-slate-800 border-b border-slate-900"></div>
 
-        <!-- Intercom Utilities & Quick Actions (COMPLETELY STRUCTURALLY ISOLATED CONTROLS) -->
+        <!-- Intercom Utilities & Quick Actions -->
         <div class="bg-slate-950 p-3 border-b border-slate-900 shrink-0 space-y-3 z-10 shadow-lg">
             <div class="grid grid-cols-2 gap-2">
                 <button type="button" onclick="sendUtilityRequest('🍔 FOOD REQUEST: Need a meal/water stop!')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl flex items-center justify-center gap-1 transition active:scale-95 text-[10px] py-3 uppercase tracking-wide">
@@ -272,8 +272,9 @@
         let ridesUnsubscribe = null;
         let chatUnsubscribe = null;
 
-        // TRACKING SET: Specifically records document IDs to prevent re-triggering overlay flags
+        // TRACKING PARAMETERS FOR SCREEN ENTRY TIME
         let triggeredSosAlerts = new Set();
+        let currentIntercomRoomEntryTimestamp = 0;
 
         window.addEventListener('DOMContentLoaded', () => {
             evaluateCachedSessionToken();
@@ -498,7 +499,8 @@
             document.getElementById('hud-txt-title').innerText = runObject.title.toUpperCase();
             document.getElementById('hud-txt-path').innerHTML = `<i class="fas fa-location-dot text-amber-500 mr-1"></i> ${runObject.meet} → ${runObject.dest}`;
             
-            // Clean local execution cache sets
+            // Log exact millisecond threshold timestamp when opening this room
+            currentIntercomRoomEntryTimestamp = Date.now();
             triggeredSosAlerts.clear();
 
             transitionViewportContext('intercom');
@@ -508,7 +510,7 @@
             listenToLiveChat(activeRideChannelId);
         }
 
-        // Realtime Listener Logic with Strict Condition Boundaries
+        // Updated realtime streams filtering old records out of UI alarm triggers
         function listenToLiveChat(channelId) {
             if (chatUnsubscribe) chatUnsubscribe();
             
@@ -521,8 +523,8 @@
                 messages.sort((a, b) => a.timestamp - b.timestamp);
 
                 messages.forEach(packet => {
-                    // Core Fix: Evaluates the packet.isSOS explicit assignment strictly. 
-                    if(packet.isSOS === true && !triggeredSosAlerts.has(packet.id)) { 
+                    // Check: Only open the popup overlay if the packet timestamp is greater than the exact time you entered the screen
+                    if(packet.isSOS === true && packet.timestamp > currentIntercomRoomEntryTimestamp && !triggeredSosAlerts.has(packet.id)) { 
                         triggeredSosAlerts.add(packet.id);
                         displayGlobalSOSOverlayHUD(packet.emergencyProfile); 
                     }
@@ -592,7 +594,7 @@
             document.getElementById('screen-auth').classList.add('hidden');
             document.getElementById('screen-dashboard').classList.add('hidden');
             document.getElementById('screen-history').classList.add('hidden');
-            document.getElementById('screen-intercom').classList.remove('hidden'); // Ensure base grid visible
+            document.getElementById('screen-intercom').classList.remove('hidden');
             
             if(target === 'auth') {
                 document.getElementById('screen-auth').classList.remove('hidden');
@@ -681,6 +683,7 @@
             bootIntercomTimerMetric(false);
             activeRideChannelId = null;
             triggeredSosAlerts.clear();
+            currentIntercomRoomEntryTimestamp = 0;
             if(chatUnsubscribe) chatUnsubscribe();
             transitionViewportContext('dashboard');
         }
