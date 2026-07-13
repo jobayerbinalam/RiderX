@@ -506,6 +506,26 @@
                 btn.innerText = "Create Permanent Cloud Profile";
             }
         }
+        function toggleAuthTab(tabName) {
+            activeAuthTabState = tabName;
+            document.getElementById('auth-feedback').classList.add('hidden');
+            const tsni = document.getElementById('tab-signin');
+            const tsnu = document.getElementById('tab-signup');
+            const extra = document.getElementById('signup-extra-fields');
+            const btn = document.getElementById('btn-auth-text');
+
+            if(tabName === 'signin') {
+                tsni.className = "flex-1 py-2.5 text-xs font-black rounded-xl bg-amber-500 text-slate-950 transition-all duration-200";
+                tsnu.className = "flex-1 py-2.5 text-xs font-black rounded-xl text-gray-400 transition-all duration-200";
+                extra.classList.add('hidden');
+                btn.innerText = "Sign In Securely";
+            } else {
+                tsnu.className = "flex-1 py-2.5 text-xs font-black rounded-xl bg-amber-500 text-slate-950 transition-all duration-200";
+                tsni.className = "flex-1 py-2.5 text-xs font-black rounded-xl text-gray-400 transition-all duration-200";
+                extra.classList.remove('hidden');
+                btn.innerText = "Create Permanent Cloud Profile";
+            }
+        }
 
         async function processAuthSubmission() {
             const phone = document.getElementById('inp-phone').value.trim();
