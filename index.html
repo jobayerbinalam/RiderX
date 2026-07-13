@@ -378,6 +378,11 @@
     </div>
 
     <script>
+        // CONNECTING TO SUPABASE
+        const supabase = supabase.createClient(
+            "https://dwkwagsortdumhryaqoq.supabase.co", 
+            "sb_publishable_XMHxWK_EnLhTLuWILycphA_o3aPPebX"
+        );
         let sessionProfile = null; 
         let activeRideChannelId = null;
         let activeAuthTabState = 'signin';
@@ -404,11 +409,8 @@
             document.getElementById('form-time').value = "06:00";
         }
 
-        function verifyDatabaseArchitectureSimulation() {
-            if(!localStorage.getItem('global_cloud_users')) localStorage.setItem('global_cloud_users', JSON.stringify({}));
-            if(!localStorage.getItem('global_cloud_rides')) localStorage.setItem('global_cloud_rides', JSON.stringify([]));
-            if(!localStorage.getItem('global_cloud_chat')) localStorage.setItem('global_cloud_chat', JSON.stringify([]));
-            if(!localStorage.getItem('global_cloud_requests')) localStorage.setItem('global_cloud_requests', JSON.stringify([]));
+       function verifyDatabaseArchitectureSimulation() {
+            console.log("Cloud Database Active.");
         }
 
         // REGISTRATION INTERACTIVE GENDER SELECTION TOGGLES
@@ -471,19 +473,19 @@
             }
         }
 
-        function evaluateCachedSessionToken() {
+       async function evaluateCachedSessionToken() {
             const stored = localStorage.getItem('riderx_active_session_phone');
             if(stored) {
-                const users = JSON.parse(localStorage.getItem('global_cloud_users'));
-                if(users[stored]) {
-                    sessionProfile = users[stored];
+                // Look up the user in the Cloud instead of the phone's memory
+                const { data: user, error } = await supabase.from('users').select('*').eq('phone', stored).single();
+                if(user) {
+                    sessionProfile = user;
                     bootDashboardViewport();
                     return;
                 }
             }
             transitionViewportContext('auth');
         }
-
         function toggleAuthTab(tabName) {
             activeAuthTabState = tabName;
             document.getElementById('auth-feedback').classList.add('hidden');
@@ -505,10 +507,11 @@
             }
         }
 
-        function processAuthSubmission() {
+        async function processAuthSubmission() {
             const phone = document.getElementById('inp-phone').value.trim();
             const pass = document.getElementById('inp-password').value;
             const feedback = document.getElementById('auth-feedback');
+            const btn = document.getElementById('btn-auth-text');
 
             if(!phone || !pass) {
                 feedback.innerText = "Phone token and security password parameters required.";
@@ -516,7 +519,7 @@
                 return;
             }
 
-            let users = JSON.parse(localStorage.getItem('global_cloud_users'));
+            btn.innerText = "Connecting to Cloud..."; 
 
             if(activeAuthTabState === 'signup') {
                 const name = document.getElementById('inp-username').value.trim();
@@ -528,32 +531,50 @@
                 if(!name || !sos) {
                     feedback.innerText = "All deployment registration metrics are mandatory.";
                     feedback.classList.remove('hidden');
+                    btn.innerText = "Create Permanent Cloud Profile";
                     return;
                 }
 
-                if(users[phone]) {
-                    feedback.innerText = "Token key identity already online.";
+                const { data: existingUser } = await supabase.from('users').select('*').eq('phone', phone).single();
+
+                if(existingUser) {
+                    feedback.innerText = "Token key identity already online. Please Sign In.";
                     feedback.classList.remove('hidden');
+                    btn.innerText = "Create Permanent Cloud Profile";
                     return;
                 }
 
-                users[phone] = { phone, pass, username: name, sosPhone: sos, blood, gender, transport };
-                localStorage.setItem('global_cloud_users', JSON.stringify(users));
-                sessionProfile = users[phone];
+                const newUser = { phone, pass, username: name, sosPhone: sos, blood, gender, transport };
+                const { error } = await supabase.from('users').insert([newUser]);
+
+                if(error) {
+                    feedback.innerText = "Cloud Error: " + error.message;
+                    feedback.classList.remove('hidden');
+                    btn.innerText = "Create Permanent Cloud Profile";
+                    return;
+                }
+                
+                sessionProfile = newUser;
+
             } else {
-                if(!users[phone] || users[phone].pass !== pass) {
-                    feedback.innerText = "Invalid credentials.";
+                const { data: user, error } = await supabase.from('users').select('*').eq('phone', phone).single();
+
+                if(!user || user.pass !== pass) {
+                    feedback.innerText = "Invalid credentials. User not found in Cloud.";
                     feedback.classList.remove('hidden');
+                    btn.innerText = "Sign In Securely";
                     return;
                 }
-                sessionProfile = users[phone];
+                sessionProfile = user;
             }
 
             localStorage.setItem('riderx_active_session_phone', phone);
             feedback.classList.add('hidden');
+            if(activeAuthTabState === 'signup') btn.innerText = "Create Permanent Cloud Profile";
+            else btn.innerText = "Sign In Securely";
+            
             bootDashboardViewport();
         }
-
         function bootDashboardViewport() {
             document.getElementById('dash-lbl-name').innerText = sessionProfile.username;
             document.getElementById('dash-lbl-blood').innerText = sessionProfile.blood;
