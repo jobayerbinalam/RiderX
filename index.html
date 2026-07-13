@@ -252,41 +252,21 @@
                     </div>
                 </div>
 
-                <!-- UTILITY CONTROL SYSTEM WITH UTILITY BUTTONS & SOS -->
-   <div class="bg-slate-950 p-3 border-b border-slate-900 shrink-0 space-y-2">
-       <!-- Food and Fuel Buttons -->
-       <div class="grid grid-cols-2 gap-2">
-           <button onclick="sendUtilityRequest('🍔 FOOD REQUEST: Need a meal/water stop!')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl flex items-center justify-center gap-1 transition active:scale-95 text-xs py-2.5 uppercase tracking-wide">
-               <i class="fas fa-utensils"></i> Food Request
-           </button>
-           <button onclick="sendUtilityRequest('⛽ FUEL REQUEST: Low on gas / station needed!')" class="bg-sky-600 hover:bg-sky-700 text-white font-black rounded-xl flex items-center justify-center gap-1 transition active:scale-95 text-xs py-2.5 uppercase tracking-wide">
-               <i class="fas fa-gas-pump"></i> Fuel Request
-           </button>
-       </div>
-       
-       <!-- Emergency SOS Button -->
-       <div class="grid grid-cols-1 gap-2">
-           <button onclick="armGlobalEmergencyPanicSignal()" class="bg-red-600 hover:bg-red-700 text-white font-black rounded-xl flex items-center justify-center gap-1 transition active:scale-95 shadow-md shadow-red-600/20 text-xs uppercase tracking-wider py-2.5">
-               <i class="fas fa-bolt animate-pulse"></i> BROADCAST EMERGENCY SOS
-           </button>
-       </div>
-   </div>
+                <!-- UTILITY CONTROL SYSTEM WITH COMPACT SOS BUTTON -->
+                <div class="bg-slate-950 p-3 border-b border-slate-900 shrink-0">
+                    <div class="grid grid-cols-1 gap-2">
+                        <button onclick="armGlobalEmergencyPanicSignal()" class="bg-red-600 hover:bg-red-700 text-white font-black rounded-xl flex items-center justify-center gap-1 transition active:scale-95 shadow-md shadow-red-600/20 text-xs uppercase tracking-wider py-2.5">
+                            <i class="fas fa-bolt animate-pulse"></i> BROADCAST EMERGENCY SOS
+                        </button>
+                    </div>
+                </div>
 
-   <script>
-       // Add this short helper function to your script tags at the bottom to send the requests
-       async function sendUtilityRequest(messageText) {
-           if(!activeRideChannelId) return;
-           const packet = {
-               channelId: activeRideChannelId, 
-               senderName: sessionProfile.username, 
-               senderPhone: sessionProfile.phone, 
-               message: messageText, 
-               isSOS: false, 
-               timestamp: Date.now()
-           };
-           await db.collection('chat').add(packet);
-       }
-   </script>
+                <div id="chat-stream-node" class="scrollable-feed p-4 space-y-3 bg-slate-950 flex flex-col"></div>
+                <div class="p-3 bg-slate-900 border-t border-slate-800 shrink-0 flex items-center space-x-2 pb-5">
+                    <input id="inp-chat-msg" type="text" placeholder="Transmit text message to mesh..." class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-3 text-xs text-white placeholder-gray-600 focus:outline-none">
+                    <button onclick="commitChatMessageNode()" class="bg-amber-500 text-slate-950 px-4 py-3 rounded-xl transition font-black text-xs shrink-0">SEND</button>
+                </div>
+            </div>
 
             <!-- MODAL OVERLAY: PLAN RUN -->
             <div id="modal-container-create" class="hidden absolute inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-end">
@@ -343,12 +323,13 @@
         // FIREBASE INITIALIZATION 
         // ==========================================
         const firebaseConfig = {
-            apiKey: "AIzaSyA0JRq7wn16oc46Y2GQvdhsfK2qdSNktpQ",
-            authDomain: "riderx-f100d.firebaseapp.com",
-            projectId: "riderx-f100d",
-            storageBucket: "riderx-f100d.firebasestorage.app",
-            messagingSenderId: "16678372418",
-            appId: "1:16678372418:web:d9e60d8533fb801d5019db"
+            // REPLACE EVERYTHING INSIDE THIS BRACKET WITH YOUR FIREBASE CONFIG CODE FROM STEP 1
+            apiKey: "REPLACE_WITH_YOURS",
+            authDomain: "REPLACE_WITH_YOURS",
+            projectId: "REPLACE_WITH_YOURS",
+            storageBucket: "REPLACE_WITH_YOURS",
+            messagingSenderId: "REPLACE_WITH_YOURS",
+            appId: "REPLACE_WITH_YOURS"
         };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
@@ -805,3 +786,5 @@
             }
         }
     </script>
+</body>
+</html>
