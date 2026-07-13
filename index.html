@@ -319,20 +319,27 @@
     </div>
 
     <script>
-        // ==========================================
-        // FIREBASE INITIALIZATION 
-        // ==========================================
-        const firebaseConfig = {
-            // REPLACE EVERYTHING INSIDE THIS BRACKET WITH YOUR FIREBASE CONFIG CODE FROM STEP 1
-            apiKey: "REPLACE_WITH_YOURS",
-            authDomain: "REPLACE_WITH_YOURS",
-            projectId: "REPLACE_WITH_YOURS",
-            storageBucket: "REPLACE_WITH_YOURS",
-            messagingSenderId: "REPLACE_WITH_YOURS",
-            appId: "REPLACE_WITH_YOURS"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
+        // Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyA0JRq7wn16oc46Y2GQvdhsfK2qdSNktpQ",
+  authDomain: "riderx-f100d.firebaseapp.com",
+  projectId: "riderx-f100d",
+  storageBucket: "riderx-f100d.firebasestorage.app",
+  messagingSenderId: "16678372418",
+  appId: "1:16678372418:web:d9e60d8533fb801d5019db",
+  measurementId: "G-MPN9XQ2PLC"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
 
         // Global Variables
         let sessionProfile = null; 
