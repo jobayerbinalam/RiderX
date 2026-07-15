@@ -12,6 +12,8 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <!-- Agora Web SDK for Group Voice Intercom -->
+    <script src="https://download.agora.io/sdk/release/AgoraRTC_N-4.20.0.js"></script>
     
     <style>
         .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -37,7 +39,7 @@
         </div>
 
         <div class="space-y-3 mt-4">
-            <input id="inp-phone" type="tel" placeholder="Mobile Number" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-xs text-white focus:outline-none focus:border-amber-500">
+            <input id="inp-phone" type="tel" placeholder="Mobile Token (Phone)" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-xs text-white focus:outline-none focus:border-amber-500">
             
             <div class="relative">
                 <input id="inp-password" type="password" placeholder="Security Password" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-xs text-white focus:outline-none focus:border-amber-500">
@@ -96,7 +98,6 @@
                         <span id="dash-badge-transport" class="text-[9px] uppercase font-bold tracking-widest px-2 py-0.5 rounded border bg-amber-500/10 text-amber-500 border-amber-500/30"></span>
                     </div>
                 </div>
-                <!-- Profile Edit Button now opens the super menu! -->
                 <div>
                     <button onclick="openProfileModal()" class="text-gray-500 hover:text-amber-500 transition mr-3"><i class="fas fa-user-edit text-lg"></i></button>
                     <button onclick="terminateSessionToken()" class="text-gray-500 hover:text-red-500 transition"><i class="fas fa-power-off text-lg"></i></button>
@@ -292,7 +293,7 @@
             </div>
             <div class="grid grid-cols-2 gap-3 pt-4 border-t border-red-900/50">
                 <a id="sos-link-phone" href="#" class="bg-slate-950 border border-red-900 hover:bg-red-900/30 text-red-400 font-bold text-[10px] uppercase tracking-widest py-3.5 rounded-xl flex flex-col items-center justify-center gap-1.5 transition"><i class="fas fa-phone text-base"></i> Call Rider</a>
-                <a id="sos-link-kin" href="#" class="bg-slate-950 border border-red-900 hover:bg-red-900/30 text-red-400 font-bold text-[10px] uppercase tracking-widest py-3.5 rounded-xl flex flex-col items-center justify-center gap-1.5 transition"><i class="fas fa-heart-pulse text-base"></i> Call Family</a>
+                <a id="sos-link-kin" href="#" class="bg-slate-950 border border-red-900 hover:bg-red-900/30 text-red-400 font-bold text-[10px] uppercase tracking-widest py-3.5 rounded-xl flex flex-col items-center justify-center gap-1.5 transition"><i class="fas fa-heart-pulse text-base"></i> Call Kin</a>
             </div>
         </div>
         
@@ -303,7 +304,75 @@
     <!-- APPLICATION LOGIC & FIREBASE INTEGRATION   -->
     <!-- ========================================== -->
     <script>
-        // FIREBASE INITIALIZATION
+        // ==========================================
+        // AGORA VOICE ENGINE SETUP
+        // ==========================================
+        const agoraAppId = "9f62c4975d504624a0531fc4f9db411e";
+        const agoraClient = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+        let localAudioTrack = null;
+        let remoteUsers = {}; // Tracks other riders to easily mute/unmute them
+
+        // Listen for other riders joining the voice channel
+        agoraClient.on("user-published", async (user, mediaType) => {
+            await agoraClient.subscribe(user, mediaType);
+            console.log("Rider connected to voice:", user.uid);
+            
+            if (mediaType === "audio") {
+                remoteUsers[user.uid] = user;
+                user.audioTrack.play(); // Play their voice automatically
+                
+                // If the user's speaker button is currently muted, make sure this new person is muted too
+                if (!hardwareSpeakerActive) {
+                    user.audioTrack.setVolume(0);
+                } else {
+                    user.audioTrack.setVolume(100);
+                }
+            }
+        });
+
+        // Listen for riders leaving
+        agoraClient.on("user-unpublished", (user, mediaType) => {
+            if (mediaType === "audio") {
+                if (remoteUsers[user.uid]) delete remoteUsers[user.uid];
+            }
+        });
+
+        async function joinAgoraVoiceChannel(channelId) {
+            try {
+                // Join using the exact Firebase Channel ID
+                await agoraClient.join(agoraAppId, channelId, null, null);
+                
+                // Turn on microphone
+                localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+                await agoraClient.publish([localAudioTrack]);
+                
+                // Sync the mic state with the UI button
+                localAudioTrack.setEnabled(hardwareMicActive);
+                
+                console.log("Voice channel connected successfully!");
+            } catch (error) {
+                console.error("Error joining voice intercom:", error);
+            }
+        }
+
+        async function leaveAgoraVoiceChannel() {
+            try {
+                if (localAudioTrack) {
+                    localAudioTrack.stop();
+                    localAudioTrack.close();
+                    localAudioTrack = null;
+                }
+                await agoraClient.leave();
+                remoteUsers = {};
+                console.log("Left the voice channel.");
+            } catch (error) {
+                console.error("Error leaving voice intercom:", error);
+            }
+        }
+
+        // ==========================================
+        // FIREBASE INITIALIZATION & LOGIC
+        // ==========================================
         const firebaseConfig = {
             apiKey: "AIzaSyA0JRq7wn16oc46Y2GQvdhsfK2qdSNktpQ",
             authDomain: "riderx-f100d.firebaseapp.com",
@@ -318,7 +387,7 @@
         // Global State Registers
         let sessionProfile = null; 
         let activeRideChannelId = null;
-        let editingRideId = null; // Tells us if the Admin is editing a group!
+        let editingRideId = null; 
         let activeAuthTabState = 'signin';
         let intercomTimerInterval = null;
         let timerSeconds = 0;
@@ -394,11 +463,23 @@
                 const btn = document.getElementById('btn-audio-mic');
                 btn.className = hardwareMicActive ? "px-2.5 py-1.5 rounded bg-slate-900 border border-slate-800 text-emerald-400 transition text-sm" : "px-2.5 py-1.5 rounded bg-slate-900 border border-slate-800 text-red-500 transition text-sm";
                 btn.innerHTML = hardwareMicActive ? '<i class="fas fa-microphone"></i>' : '<i class="fas fa-microphone-slash"></i>';
+                
+                // Mute/Unmute Agora Microphone
+                if (localAudioTrack) {
+                    localAudioTrack.setEnabled(hardwareMicActive);
+                }
             } else if(device === 'speaker') {
                 hardwareSpeakerActive = !hardwareSpeakerActive;
                 const btn = document.getElementById('btn-audio-speaker');
                 btn.className = hardwareSpeakerActive ? "px-2.5 py-1.5 rounded bg-slate-900 border border-slate-800 text-emerald-400 transition text-sm" : "px-2.5 py-1.5 rounded bg-slate-900 border border-slate-800 text-red-500 transition text-sm";
                 btn.innerHTML = hardwareSpeakerActive ? '<i class="fas fa-volume-up"></i>' : '<i class="fas fa-volume-mute"></i>';
+                
+                // Mute/Unmute Agora Remote Speakers
+                Object.values(remoteUsers).forEach(user => {
+                    if (user.audioTrack) {
+                        user.audioTrack.setVolume(hardwareSpeakerActive ? 100 : 0);
+                    }
+                });
             }
         }
 
@@ -494,15 +575,12 @@
             }
         }
 
-        // --- NEW: Powerful Profile Editor ---
         function openProfileModal() {
-            // Fill the boxes with the user's current data!
             document.getElementById('edit-username').value = sessionProfile.username;
             document.getElementById('edit-sos').value = sessionProfile.sosPhone;
             document.getElementById('edit-blood').value = sessionProfile.blood;
             document.getElementById('edit-gender').value = sessionProfile.gender;
             document.getElementById('edit-transport').value = sessionProfile.transport || "Motorcycle";
-            // Show the menu
             document.getElementById('modal-container-profile').classList.remove('hidden');
         }
 
@@ -519,7 +597,6 @@
             }
 
             try {
-                // Update Firestore Database
                 await db.collection('users').doc(sessionProfile.phone).update({
                     username: name,
                     sosPhone: sos,
@@ -528,17 +605,13 @@
                     transport: transport
                 });
                 
-                // Update the memory in our app
                 sessionProfile.username = name;
                 sessionProfile.sosPhone = sos;
                 sessionProfile.blood = blood;
                 sessionProfile.gender = gender;
                 sessionProfile.transport = transport;
 
-                // Make the Dashboard show the new info
                 bootDashboardViewport();
-                
-                // Close the menu
                 document.getElementById('modal-container-profile').classList.add('hidden');
                 alert("✅ Profile updated perfectly!");
             } catch (error) {
@@ -547,15 +620,11 @@
             }
         }
 
-        // --- NEW: Delete Profile Function ---
         async function deleteUserProfile() {
             const confirmDelete = confirm("⚠️ STOP! Are you absolutely sure you want to delete your profile? This cannot be undone!");
             if (confirmDelete) {
                 try {
-                    // Delete from database
                     await db.collection('users').doc(sessionProfile.phone).delete();
-                    
-                    // Close the menu and Log out completely!
                     document.getElementById('modal-container-profile').classList.add('hidden');
                     alert("🗑️ Your account has been deleted.");
                     terminateSessionToken(); 
@@ -613,12 +682,8 @@
                             </div>
                         </div>
                         <div class="flex gap-2 items-center shrink-0">
-                            <!-- NEW: Admin Edit Button -->
                             ${isAdmin ? `<button onclick="openEditRideModal('${run.id}', event)" class="bg-blue-900/40 text-blue-400 px-3 py-2 rounded-xl text-[10px] uppercase font-black border border-blue-900/50 hover:bg-blue-900"><i class="fas fa-pencil"></i></button>` : ''}
-                            
-                            <!-- Admin Delete Button -->
                             ${isAdmin ? `<button onclick="deleteMesh('${run.id}', event)" class="bg-red-900/40 text-red-500 px-3 py-2 rounded-xl text-[10px] uppercase font-black border border-red-900/50 hover:bg-red-900"><i class="fas fa-trash"></i></button>` : ''}
-                            
                             <button onclick="attemptJoinMesh('${run.id}', event)" class="bg-slate-950 px-3 py-2 rounded-xl text-[9px] font-black text-amber-500 border border-slate-850 uppercase tracking-widest"><i class="fas fa-satellite-dish mr-1"></i> Join</button>
                         </div>
                     `;
@@ -627,9 +692,8 @@
             });
         }
 
-        // Opens the Create modal as totally empty and NEW
         function openNewRideModal() {
-            editingRideId = null; // Tell the system we are NOT editing
+            editingRideId = null; 
             document.getElementById('modal-ride-title').innerHTML = `<i class="fas fa-route mr-1"></i> Initialize Deployment`;
             document.getElementById('form-title').value = "";
             document.getElementById('form-meet').value = "";
@@ -643,14 +707,13 @@
             revealModalContainer(true);
         }
 
-        // --- NEW: Admin Edit Group Power ---
         async function openEditRideModal(channelId, event) {
             event.stopPropagation();
             const doc = await db.collection('rides').doc(channelId).get();
             if(!doc.exists) return;
             const run = doc.data();
 
-            editingRideId = channelId; // Tell the system we ARE editing this specific group!
+            editingRideId = channelId; 
             
             document.getElementById('modal-ride-title').innerHTML = `<i class="fas fa-pencil mr-1"></i> Edit Mesh Group`;
             document.getElementById('form-title').value = run.title;
@@ -677,19 +740,17 @@
             const isPublic = document.getElementById('form-privacy').value === 'public';
             const passcode = document.getElementById('form-passcode').value.trim();
 
-            // If we are UPDATING an old group...
             if (editingRideId !== null) {
                 await db.collection('rides').doc(editingRideId).update({
                     title: title, meet: meet, dest: dest, speed: speed, 
                     date: date, time: time, isPublic: isPublic, passcode: passcode
                 });
-                editingRideId = null; // Reset it
+                editingRideId = null;
                 revealModalContainer(false);
                 alert("✅ Group details updated!");
-                return; // Stop here, no need to join immediately if just editing
+                return; 
             }
 
-            // If we are CREATING a completely new group...
             const newChannelId = "CH-" + Date.now();
             const record = {
                 id: newChannelId,
@@ -706,25 +767,19 @@
             initializeLiveIntercomCommsMesh(record);
         }
 
-        // --- FIXED STRICT PASSCODE CHECK ---
         async function attemptJoinMesh(channelId, event) {
             event.stopPropagation(); 
             const doc = await db.collection('rides').doc(channelId).get();
             if (!doc.exists) return;
             const run = doc.data();
             
-            // STRICT RULE: If the group is NOT public, and YOU are NOT the Admin who made it...
             if (run.isPublic === false && run.creatorPhone !== sessionProfile.phone) {
-                // Ask for the password!
                 const userInput = prompt("🔒 This group is private. Please enter the exact Passcode:");
-                
-                // If they click cancel (null) or type the wrong password, STOP THEM!
                 if (userInput === null || userInput.trim() !== run.passcode) {
                     alert("❌ Incorrect Passcode! You are not allowed to enter.");
-                    return; // The 'return' word immediately kicks them out.
+                    return; 
                 }
             }
-            // If they made it this far, they typed the correct password (or it was public)!
             initializeLiveIntercomCommsMesh(run);
         }
 
@@ -749,6 +804,9 @@
             setupHardwareMapDevice();
             
             listenToLiveChat(activeRideChannelId);
+            
+            // AGORA: Join the Voice Channel!
+            joinAgoraVoiceChannel(activeRideChannelId);
         }
 
         function listenToLiveChat(channelId) {
@@ -923,6 +981,10 @@
             activeRideChannelId = null;
             triggeredSosAlerts.clear();
             currentIntercomRoomEntryTimestamp = 0;
+            
+            // AGORA: Leave the Voice Channel!
+            leaveAgoraVoiceChannel();
+            
             if(chatUnsubscribe) chatUnsubscribe();
             transitionViewportContext('dashboard');
         }
